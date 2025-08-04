@@ -1,67 +1,66 @@
 // app/api/generate-hint/route.js
-import { NextResponse } from 'next/server';
-import Groq from 'groq-sdk';
+import { NextResponse } from "next/server";
+import Groq from "groq-sdk";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-// Enable CORS 
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*', // or restrict to http://localhost:3000
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
-}
-
 export async function POST(request) {
   try {
     const { query, type } = await request.json();
+    console.log(`Query: ${query}, HintType: ${type}`);
 
     if (!query || !type) {
-      return NextResponse.json({ message: 'Missing query or type' }, { status: 400 });
+      return NextResponse.json({ response: "Enter query and type" });
     }
 
-    const messages = [
+    const promt = [
       {
         role: "system",
-        content: "You are a helpful assistant that provides hints for Data Structures and Algorithms problems. Provide clear, concise, and progressive hints. A 'slight' hint should give a small nudge, a 'medium' hint should provide a clearer direction, and a 'full' hint should almost reveal the core idea or algorithm. Ensure the hint is directly relevant to the problem and the requested hint type. Keep it concise and to the point."
+        content: `
+          You are an expert AI assistant specializing in Data Structures and Algorithms (DSA). Your role is to provide a single, concise hint for a given problem based on the requested hint type.
+
+          **Hint Type Definitions:**
+          - **slight**: Focus on the absolute first step. Ask a sharp, leading question about the problem's core requirement or constraints. Do NOT mention any specific data structure or algorithm. Example for "Two Sum": "For each number you inspect, how do you know what number you're looking for?"
+          - **medium**: Name the key data structure or algorithm needed. Briefly explain *why* it is useful for this problem to guide the user's thinking. Example for "Two Sum": "Use a hash map. This allows you to store numbers you've already seen and check for the existence of their complement in constant O(1) time."
+          - **full**: Provide a detailed, step-by-step explanation of the optimal algorithm. Conclude with clear, language-agnostic pseudocode that outlines the logic, variables, and control flow. Example for "Two Sum": "We iterate through the array once, using a hash map to store elements we've seen. For each element, we calculate the required complement. If the complement is already in our map, we've found our pair. If not, we add the current element and its index to the map.
+
+          **Pseudocode:**
+          function findTwoSum(nums, target):
+            map = new HashMap()
+            for i from 0 to length(nums) - 1:
+              complement = target - nums[i]
+              if map.contains(complement):
+                return [map.get(complement), i]
+              map.put(nums[i], i)
+            // Return an indication of no solution found
+            return []
+          end function
+          `,
       },
       {
         role: "user",
-        content: `Problem: "${query}"\n\nProvide a "${type}" hint.`
-      }
+        content: `Generate a ${type} , for problem ${query}`,
+      },
     ];
 
+    console.log(`Promt: ${promt}`);
     const chatCompletion = await groq.chat.completions.create({
-      messages,
+      messages: promt,
       model: "llama3-8b-8192",
       temperature: 0.7,
       max_tokens: 500,
     });
 
-    const generatedHint = chatCompletion.choices[0]?.message?.content || "Sorry, I couldn't generate a hint.";
+    console.log(`chatCompletion: ${chatCompletion}`);
 
-    return new NextResponse(JSON.stringify({ hint: generatedHint }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*', // You can use "http://localhost:3000" if you want to restrict
-      },
-    });
+    const result = chatCompletion.choices[0]?.message?.content;
+
+    console.log(`Result: ${result}`);
+
+    return NextResponse.json({ hintResponse: result });
   } catch (error) {
-    console.log(error)
-    console.error('Error generating hint:', error);
-    return new NextResponse(JSON.stringify({ message: 'Internal Server Error', error: error.message }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    return NextResponse.json({ error: error.message });
   }
 }
