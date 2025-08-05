@@ -10,14 +10,25 @@ export default function HomePage() {
   const [hintResponse, setHintResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [prevResponse, setPrevResponse] = useState('')
+
+
+  // Handler for the "Upgrade Hint" button that appears with the flashcard
+  const handleHintUpgrade = () => {
+    setPrevResponse(hintResponse)  
+    handleGenerateHint(problemQuery, hintType); // Fetch the new hint
+    
+  };
 
   const handleGenerateHint = async () => {
-    setHintResponse("");
+    setHintResponse(prevResponse || '');
     setIsLoading(true);
     setError(null);
 
     if (!problemQuery || !hintType) {
       setInvalidParameters(true);
+      setIsLoading(false);
+      return;
     }
 
     try {
@@ -35,6 +46,7 @@ export default function HomePage() {
 
       setHintResponse(hint.hintResponse);
 
+      setInvalidParameters(false);
       console.log("Generate Hint button was clicked!");
     } catch (error) {
       setError(error);
@@ -132,9 +144,77 @@ export default function HomePage() {
           </div>
         )} */}
 
+        {/* This is the corrected block for showing the hint */}
         {hintResponse && (
-          <div className="mt-6 flex justify-center w-full">
-            <FlashCards content={hintResponse} hintType={hintType} />
+          <div className="mt-6">
+            {/* 1. Render the Flashcard directly. No need for a separate function. */}
+            <div className="flex justify-center w-full">
+              <FlashCards
+                content={hintResponse}
+                hintType={hintType}
+                onHintUpgrade={handleHintUpgrade} // Pass the upgrade function
+              />
+            </div>
+
+            {hintResponse && (
+              <div>
+                {/* i want to onvoke generatedFlashcard function here */}
+                {hintType === "Slight" && (
+                  <button
+                    className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
+                      isLoading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    onClick={handleHintUpgrade}
+                    disabled={isLoading}
+                  >
+                    Slight Hint
+                  </button>
+                )}
+                {hintType === "Slight" && (
+                  <button
+                    className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
+                      isLoading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    onClick={()=>{
+                      setHintType('Medium')
+                      handleHintUpgrade()
+                    }}
+                    disabled={isLoading}
+                  >
+                    Medium Hint
+                  </button>
+                )}
+                {hintType === "Medium" && (
+                  <button
+                    className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
+                      isLoading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    onClick={()=>{
+                      setHintType('Medium')
+                      handleHintUpgrade()
+                    }}
+                    disabled={isLoading}
+                  >
+                    Medium Hint
+                  </button>
+                )}
+                {hintType === "Medium" && (
+                  <button
+                    className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
+                      isLoading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    onClick={()=>{
+                      setHintType('Full')
+                      handleHintUpgrade()
+                    }}
+                    disabled={isLoading}
+                  >
+                    Full Solution
+                  </button>
+                )}
+                {hintType === "Full" && <></>}
+              </div>
+            )}
           </div>
         )}
       </div>
