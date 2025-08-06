@@ -6,12 +6,8 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-export async function POST(request) {
-  try {
-    const { query, type } = await request.json();
-    console.log(`Query: ${query}, HintType: ${type}`);
-
-    if (!query || !type) {
+async function generateHint(query, type) {
+if (!query || !type) {
       return NextResponse.json({ response: "Enter query and type" });
     }
 
@@ -37,6 +33,7 @@ export async function POST(request) {
             // Return an indication of no solution found
             return []
           end function
+          dont include here is a {hintType} hint for the {query} problem: just give hint i dont want user to see any unnessesary text
           `,
       },
       {
@@ -57,9 +54,41 @@ export async function POST(request) {
 
     const result = chatCompletion.choices[0]?.message?.content;
 
-    console.log(`Result: ${result}`);
+    return result
+}
 
-    return NextResponse.json({ hintResponse: result });
+async function handleDuplicate(query, type, hints) {
+    const maxRetries = 5
+    let uniqueHint = ""
+
+    for(let i = 0; i<maxRetries; i++){
+      const generatedHint = await generateHint(query, type)
+
+      console.log(`generatedHint: ${generatedHint}`)
+
+      if(!hints.includes(generatedHint))
+      {
+        uniqueHint = generatedHint
+        break
+      }
+    }
+
+    if(uniqueHint)
+    {
+      return uniqueHint
+    }else{
+     await handleDuplicate(query, type, hints)
+    }
+}
+
+export async function POST(request) {
+  try {
+    const { query, type, hints } = await request.json();
+    console.log(`Query: ${query}, HintType: ${type}, `);
+
+    const result = await handleDuplicate(query, type, hints)
+    return NextResponse.json({ hintResponse : result });
+
   } catch (error) {
     return NextResponse.json({ error: error.message });
   }

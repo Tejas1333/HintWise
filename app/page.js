@@ -7,21 +7,19 @@ export default function HomePage() {
   const [problemQuery, setProblemQuery] = useState("");
   const [invalidParameters, setInvalidParameters] = useState(false);
   const [hintType, setHintType] = useState("Slight");
-  const [hintResponse, setHintResponse] = useState("");
+  const [hintResponse, setHintResponse] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [prevResponse, setPrevResponse] = useState('')
-
+  const [prevResponse, setPrevResponse] = useState("");
 
   // Handler for the "Upgrade Hint" button that appears with the flashcard
   const handleHintUpgrade = () => {
-    setPrevResponse(hintResponse)  
+    setPrevResponse(hintResponse);
     handleGenerateHint(problemQuery, hintType); // Fetch the new hint
-    
   };
 
   const handleGenerateHint = async () => {
-    setHintResponse(prevResponse || '');
+    setHintResponse(prevResponse || "");
     setIsLoading(true);
     setError(null);
 
@@ -35,7 +33,7 @@ export default function HomePage() {
       const response = await fetch("http://localhost:3000/api/generate-hint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: problemQuery, type: hintType }),
+        body: JSON.stringify({ query: problemQuery, type: hintType, hints: hintResponse}),
       });
 
       if (!response.ok) {
@@ -44,7 +42,16 @@ export default function HomePage() {
       }
       const hint = await response.json();
 
-      setHintResponse(hint.hintResponse);
+      const newHintObject = {
+        id: Date.now(),
+        type: hintType,
+        content: hint.hintResponse,
+      };
+
+      setHintResponse((prevHintResponse) => [
+        ...prevHintResponse,
+        newHintObject,
+      ]);
 
       setInvalidParameters(false);
       console.log("Generate Hint button was clicked!");
@@ -144,77 +151,74 @@ export default function HomePage() {
           </div>
         )} */}
 
-        {/* This is the corrected block for showing the hint */}
-        {hintResponse && (
-          <div className="mt-6">
-            {/* 1. Render the Flashcard directly. No need for a separate function. */}
-            <div className="flex justify-center w-full">
-              <FlashCards
-                content={hintResponse}
-                hintType={hintType}
-                onHintUpgrade={handleHintUpgrade} // Pass the upgrade function
-              />
-            </div>
-
-            {hintResponse && (
-              <div>
-                {/* i want to onvoke generatedFlashcard function here */}
-                {hintType === "Slight" && (
-                  <button
-                    className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
-                      isLoading ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                    onClick={handleHintUpgrade}
-                    disabled={isLoading}
-                  >
-                    Slight Hint
-                  </button>
-                )}
-                {hintType === "Slight" && (
-                  <button
-                    className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
-                      isLoading ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                    onClick={()=>{
-                      setHintType('Medium')
-                      handleHintUpgrade()
-                    }}
-                    disabled={isLoading}
-                  >
-                    Medium Hint
-                  </button>
-                )}
-                {hintType === "Medium" && (
-                  <button
-                    className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
-                      isLoading ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                    onClick={()=>{
-                      setHintType('Medium')
-                      handleHintUpgrade()
-                    }}
-                    disabled={isLoading}
-                  >
-                    Medium Hint
-                  </button>
-                )}
-                {hintType === "Medium" && (
-                  <button
-                    className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
-                      isLoading ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                    onClick={()=>{
-                      setHintType('Full')
-                      handleHintUpgrade()
-                    }}
-                    disabled={isLoading}
-                  >
-                    Full Solution
-                  </button>
-                )}
-                {hintType === "Full" && <></>}
+        {hintResponse.length > 0 && !isLoading && (
+          <div className="mt-6 w-full space-y-6">
+            {" "}
+            {/* A container with spacing */}
+            {/* We map over the 'hints' array. For each 'hint' object in the array... */}
+            {hintResponse.map((hint) => (
+              // ...we render one FlashCards component.
+              <div key={hint.id} className="flex justify-center w-full">
+                <FlashCards content={hint.content} hintType={hint.type} />
               </div>
-            )}
+            ))}
+            <div>
+              {/* i want to onvoke generatedFlashcard function here */}
+              {hintType === "Slight" && (
+                <button
+                  className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
+                    isLoading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  onClick={handleHintUpgrade}
+                  disabled={isLoading}
+                >
+                  Slight Hint
+                </button>
+              )}
+              {hintType === "Slight" && (
+                <button
+                  className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
+                    isLoading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  onClick={() => {
+                    setHintType("Medium");
+                    handleHintUpgrade();
+                  }}
+                  disabled={isLoading}
+                >
+                  Medium Hint
+                </button>
+              )}
+              {hintType === "Medium" && (
+                <button
+                  className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
+                    isLoading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  onClick={() => {
+                    setHintType("Medium");
+                    handleHintUpgrade();
+                  }}
+                  disabled={isLoading}
+                >
+                  Medium Hint
+                </button>
+              )}
+              {hintType === "Medium" && (
+                <button
+                  className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
+                    isLoading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  onClick={() => {
+                    setHintType("Full");
+                    handleHintUpgrade();
+                  }}
+                  disabled={isLoading}
+                >
+                  Full Solution
+                </button>
+              )}
+              {hintType === "Full" && <></>}
+            </div>
           </div>
         )}
       </div>
