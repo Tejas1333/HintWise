@@ -94,7 +94,7 @@ export default function HomePage() {
         <div className="mb-6">
           <label
             htmlFor="hintType"
-            className="block text-gray-700 text-sm font-bold mb-2"
+            className="block text-gray-700 text-sm font-bold mb-2 "
           >
             Hint Type:
           </label>
