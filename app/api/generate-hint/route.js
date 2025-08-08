@@ -66,7 +66,7 @@ async function handleDuplicate(query, type, hints) {
 
       console.log(`generatedHint: ${generatedHint}`)
 
-      if(!hints.includes(generatedHint))
+      if(!hints.some(hint => hint.content === generatedHint))
       {
         uniqueHint = generatedHint
         break
