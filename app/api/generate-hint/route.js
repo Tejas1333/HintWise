@@ -6,7 +6,9 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-async function generateHint(query, type) {
+async function generateHint(query, type, hints) {
+  const allHintsContent = hints.map(h => h.content).join('\n-')
+
 if (!query || !type) {
       return NextResponse.json({ response: "Enter query and type" });
     }
@@ -54,7 +56,7 @@ if (!query || !type) {
       },
       {
         role: "user",
-        content: `Generate a ${type} , for problem ${query}`,
+        content: `Generate a ${type} , for problem ${query}, and dont include these hints or hints similar to this ${allHintsContent} but i want you to make follow up hints on given previous hints`,
       },
     ];
 
@@ -78,7 +80,7 @@ async function handleDuplicate(query, type, hints) {
     let uniqueHint = ""
 
     for(let i = 0; i<maxRetries; i++){
-      const generatedHint = await generateHint(query, type)
+      const generatedHint = await generateHint(query, type, hints)
 
       console.log(`generatedHint: ${generatedHint}`)
 
