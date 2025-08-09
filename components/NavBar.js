@@ -1,4 +1,8 @@
+"use client"
+
 import React from "react";
+import { useSession, signIn, signOut } from "next-auth/react";
+
 
 const LogoIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-sky-500">
@@ -8,6 +12,8 @@ const LogoIcon = () => (
 );
 
 const NavBar = () => {
+    const { data: session } = useSession();
+    const user = session?.user;
   return (
     <div>
       <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
@@ -29,12 +35,31 @@ const NavBar = () => {
               >
                 History
               </a>
-              <a
+            {!session && (
+              <button
                 href="#"
                 className="px-4 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-md transition-colors"
-              >
+                onClick={()=>{
+                  signIn('google', {callbackUrl: "/"})
+                }}
+                >
                 Sign In
-              </a>
+              </button>
+            )}
+            {session && (
+              <div className="">
+                <span className="text-black">{user?.name}</span>
+              <button
+                href="#"
+                className="px-4 py-2 m-4 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-md transition-colors"
+                onClick={()=>{
+                  signOut()
+                }}
+                >
+                Sign Out
+              </button>
+              </div>
+            )}
             </div>
 
             {/* Mobile Menu Button (Optional, for future use) */}

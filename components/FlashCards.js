@@ -1,5 +1,9 @@
 import React from "react";
-import { useState } from 'react';
+import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import rehypeKatex from "rehype-katex";
+import remarkGfm from "remark-gfm";
+import "katex/dist/katex.min.css";
 
 const FlashCards = ({ content, hintType }) => {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -10,11 +14,11 @@ const FlashCards = ({ content, hintType }) => {
 
   return (
     // The main container. Removed fixed height. It's now responsive.
-    <div 
-      className="w-full max-w-xl [perspective:1000px] mt-5 cursor-pointer" 
+    <div
+      className="w-full max-w-xl [perspective:1000px] mt-5 cursor-pointer"
       onClick={handleFlip}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === "Enter" || e.key === " ") {
           handleFlip();
         }
       }}
@@ -44,10 +48,13 @@ const FlashCards = ({ content, hintType }) => {
           </div>
 
           {/* Back of the card (with responsive height) */}
-          <div className="[grid-area:1/1] w-full min-h-[20rem] rounded-xl bg-gray-200 border border-cyan-400 shadow-2xl flex items-center justify-center p-8 [transform:rotateY(180deg)] [backface-visibility:hidden]">
-            <p className="text-xl md:text-2xl font-medium text-slate-900 text-center">
-              {content}
-            </p>
+          <div className="[grid-area:1/1] w-full min-h-[20rem] rounded-xl bg-gray-200 border border-cyan-400 shadow-2xl flex items-center justify-center p-8 [transform:rotateY(180deg)] [backface-visibility:hidden] text-black">
+              <ReactMarkdown
+                rehypePlugins={[rehypeKatex]}
+                remarkPlugins={[remarkGfm]}
+              >
+                {content}
+              </ReactMarkdown>
           </div>
         </div>
       </div>
