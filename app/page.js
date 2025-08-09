@@ -1,29 +1,23 @@
 "use client";
 
-import FlashCards from "@/components/FlashCards";
 import { useState } from "react";
+import FlashCards from "@/components/FlashCards"; // Make sure this path is correct
 
 export default function HomePage() {
   const [problemQuery, setProblemQuery] = useState("");
   const [invalidParameters, setInvalidParameters] = useState(false);
-  const [hintType, setHintType] = useState("Slight");
+  const [initialHintType, setInitialHintType] = useState("Slight");
   const [hintResponse, setHintResponse] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [prevResponse, setPrevResponse] = useState("");
 
-  // Handler for the "Upgrade Hint" button that appears with the flashcard
-  const handleHintUpgrade = () => {
-    setPrevResponse(hintResponse);
-    handleGenerateHint(problemQuery, hintType); // Fetch the new hint
-  };
-
-  const handleGenerateHint = async () => {
-    setHintResponse(prevResponse || "");
+  // This handler is now used for all new hint generations, including upgrades.
+  const handleGenerateHint = async (typeToGenerate) => {
     setIsLoading(true);
     setError(null);
+    setInvalidParameters(false);
 
-    if (!problemQuery || !hintType) {
+    if (!problemQuery) {
       setInvalidParameters(true);
       setIsLoading(false);
       return;
@@ -33,191 +27,159 @@ export default function HomePage() {
       const response = await fetch("http://localhost:3000/api/generate-hint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: problemQuery, type: hintType, hints: hintResponse}),
+        body: JSON.stringify({
+          query: problemQuery,
+          type: typeToGenerate,
+          hints: hintResponse, // Send previous hints for context
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message);
+        throw new Error(errorData.message || "An unknown error occurred");
       }
-      const hint = await response.json();
 
+      const hint = await response.json();
       const newHintObject = {
         id: Date.now(),
-        type: hintType,
+        type: typeToGenerate,
         content: hint.hintResponse,
       };
 
-      setHintResponse((prevHintResponse) => [
-        ...prevHintResponse,
-        newHintObject,
-      ]);
-
-      setInvalidParameters(false);
-      console.log("Generate Hint button was clicked!");
-    } catch (error) {
-      setError(error);
+      setHintResponse((prev) => [...prev, newHintObject]);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Helper to clear state and start a new problem
+  const handleStartOver = () => {
+    setHintResponse([]);
+    setError(null);
+    setProblemQuery("");
+  };
+  
+  // Determine the type of the last hint received to drive the UI logic
+  const lastHint = hintResponse.length > 0 ? hintResponse[hintResponse.length - 1] : null;
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 mt-10">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-4/5">
-        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4 sm:p-8">
+      <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-3xl">
+        <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-4">
           HintWise Prototype
         </h1>
         <p className="text-center text-gray-600 mb-8">
           Get AI-powered hints for DSA problems
         </p>
 
-        <div className="mb-4">
-          <label
-            htmlFor="problemQuery"
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            DSA Problem Query:
-          </label>
-          <input
-            type="text"
-            id="problemQuery"
-            value={problemQuery}
-            onChange={(e) => {
-              setProblemQuery(e.target.value);
-            }}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500"
-            placeholder="e.g., 'Two Sum problem'"
-          />
-        </div>
-
-        <div className="mb-6">
-          <label
-            htmlFor="hintType"
-            className="block text-gray-700 text-sm font-bold mb-2 "
-          >
-            Hint Type:
-          </label>
-          <select
-            id="hintType"
-            value={hintType}
-            onChange={(e) => {
-              setHintType(e.target.value);
-            }}
-            className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500"
-          >
-            <option value="Slight">Slight Hint (small nudge)</option>
-            <option value="Medium">Medium Hint (clearer direction)</option>
-            <option value="Full">Full Hint (core idea/algorithm)</option>
-          </select>
-        </div>
-
-        {isLoading ? (
-          <button
-            className={`w-full bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-          >
-            Generating Hint
-          </button>
-        ) : (
-          <button
-            className={`w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-            onClick={handleGenerateHint}
-          >
-            Get Hint
-          </button>
-        )}
-
-        {/* --- Conditional Rendering for Error and Hint --- */}
-        {error && (
-          <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-            {error}
-          </div>
-        )}
-
-        {invalidParameters && (
-          <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h2 className="text-lg  text-red-500 mb-2">
-              Please Enter query and hint!!!
-            </h2>
-          </div>
-        )}
-
-        {/* {hintResponse &&  (
-          <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Generated Hint:</h2>
-            <p className="text-gray-700 whitespace-pre-wrap">{hintResponse}</p>
-          </div>
-        )} */}
-
-        {hintResponse.length > 0 && !isLoading && (
-          <div className="mt-6 w-full space-y-6">
-            {" "}
-            {/* A container with spacing */}
-            {/* We map over the 'hints' array. For each 'hint' object in the array... */}
-            {hintResponse.map((hint) => (
-              // ...we render one FlashCards component.
-              <div key={hint.id} className="flex justify-center w-full">
-                <FlashCards content={hint.content} hintType={hint.type} />
-              </div>
-            ))}
+        {/* Show input form only if no hints have been generated yet */}
+        {hintResponse.length === 0 ? (
+          <div className="space-y-6">
             <div>
-              {/* i want to onvoke generatedFlashcard function here */}
-              {hintType === "Slight" && (
+              <label htmlFor="problemQuery" className="block text-gray-700 text-sm font-bold mb-2">
+                DSA Problem Query:
+              </label>
+              <input
+                type="text"
+                id="problemQuery"
+                value={problemQuery}
+                onChange={(e) => setProblemQuery(e.target.value)}
+                className="shadow-sm appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., 'Two Sum problem'"
+              />
+            </div>
+            <div>
+              <label htmlFor="hintType" className="block text-gray-700 text-sm font-bold mb-2">
+                Initial Hint Type:
+              </label>
+              <select
+                id="hintType"
+                value={initialHintType}
+                onChange={(e) => setInitialHintType(e.target.value)}
+                className="shadow-sm border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Slight">Slight Hint (small nudge)</option>
+                <option value="Medium">Medium Hint (clearer direction)</option>
+                <option value="Full">Full Hint (core idea/algorithm)</option>
+              </select>
+            </div>
+            <button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out disabled:opacity-50"
+              onClick={() => handleGenerateHint(initialHintType)}
+              disabled={isLoading || !problemQuery}
+            >
+              {isLoading ? "Generating..." : "Get First Hint"}
+            </button>
+          </div>
+        ) : (
+          // Show this view after the first hint is generated
+          <div className="text-center">
+             <h2 className="text-xl font-semibold text-gray-800">{problemQuery}</h2>
+          </div>
+        )}
+
+        {error && <div className="mt-4 p-3 bg-red-100 border-red-400 text-red-700 rounded-lg">{error}</div>}
+        
+        {/* Display area for hints */}
+        <div className="mt-6 w-full space-y-6">
+          {hintResponse.map((hint) => (
+            <div key={hint.id} className="flex justify-center w-full">
+              <FlashCards content={hint.content} hintType={hint.type} />
+            </div>
+          ))}
+        </div>
+
+        {/* --- NEW DYNAMIC BUTTON LOGIC --- */}
+        {!isLoading && lastHint && (
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            {lastHint.type === "Slight" && (
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
                 <button
-                  className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
-                    isLoading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                  onClick={handleHintUpgrade}
-                  disabled={isLoading}
+                  className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg transition-colors"
+                  onClick={() => handleGenerateHint("Slight")}
                 >
-                  Slight Hint
+                  Get Another Slight Hint
                 </button>
-              )}
-              {hintType === "Slight" && (
                 <button
-                  className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
-                    isLoading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                  onClick={() => {
-                    setHintType("Medium");
-                    handleHintUpgrade();
-                  }}
-                  disabled={isLoading}
+                  className="w-full sm:w-auto bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-5 rounded-lg transition-colors"
+                  onClick={() => handleGenerateHint("Medium")}
                 >
-                  Medium Hint
+                  Upgrade to Medium
                 </button>
-              )}
-              {hintType === "Medium" && (
+              </div>
+            )}
+
+            {lastHint.type === "Medium" && (
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
                 <button
-                  className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
-                    isLoading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                  onClick={() => {
-                    setHintType("Medium");
-                    handleHintUpgrade();
-                  }}
-                  disabled={isLoading}
+                  className="w-full sm:w-auto bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-5 rounded-lg transition-colors"
+                  onClick={() => handleGenerateHint("Medium")}
                 >
-                  Medium Hint
+                  Get Another Medium Hint
                 </button>
-              )}
-              {hintType === "Medium" && (
                 <button
-                  className={`bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors ${
-                    isLoading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                  onClick={() => {
-                    setHintType("Full");
-                    handleHintUpgrade();
-                  }}
-                  disabled={isLoading}
+                  className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-5 rounded-lg transition-colors"
+                  onClick={() => handleGenerateHint("Full")}
                 >
-                  Full Solution
+                  Upgrade to Full Solution
                 </button>
-              )}
-              {hintType === "Full" && <></>}
+              </div>
+            )}
+
+            {lastHint.type === "Full" && (
+              <div className="text-center p-4 bg-green-100 text-green-800 rounded-lg">
+                <p className="font-semibold">You have the full solution! Good luck with the implementation.</p>
+              </div>
+            )}
+             <div className="text-center mt-6">
+                <button 
+                    onClick={handleStartOver}
+                    className="text-gray-500 hover:text-gray-700 text-sm font-medium"
+                >
+                    Start a new problem
+                </button>
             </div>
           </div>
         )}
