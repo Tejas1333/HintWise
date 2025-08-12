@@ -60,6 +60,35 @@ export default function HomePage() {
     setError(null);
     setProblemQuery("");
   };
+
+const createDoc = async () => {
+  try {
+    const response = await fetch('/api/users', { // Using a relative URL is better
+      method: "POST",
+      headers: { 'Content-type': 'application/json' },
+      body: JSON.stringify({
+        initialHintType: initialHintType,
+        hintResponse: hintResponse
+      })
+    });
+
+    // Check if the request was successful
+    if (!response.ok) {
+      // If the server responded with an error, throw an error to be caught by the catch block
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Something went wrong');
+    }
+
+    // You can get the data back from the server if you want
+    const result = await response.json();
+    console.log('Successfully saved to DB:', result.data);
+    // You could add success feedback to the user here, e.g., setSuccess(true)
+
+  } catch (error) {
+    console.error('Failed to save data:', error);
+    // You could show an error message to the user here, e.g., setError(error.message)
+  }
+};
   
   // Determine the type of the last hint received to drive the UI logic
   const lastHint = hintResponse.length > 0 ? hintResponse[hintResponse.length - 1] : null;
@@ -107,7 +136,10 @@ export default function HomePage() {
             </div>
             <button
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out disabled:opacity-50"
-              onClick={() => handleGenerateHint(initialHintType)}
+              onClick={() => {
+                handleGenerateHint(initialHintType)
+                createDoc(initialHintType, hintResponse)
+              }}
               disabled={isLoading || !problemQuery}
             >
               {isLoading ? "Generating..." : "Get First Hint"}
