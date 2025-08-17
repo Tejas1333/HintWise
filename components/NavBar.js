@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
+import Link from 'next/link'
 
 
 const LogoIcon = () => (
@@ -29,12 +30,12 @@ const NavBar = () => {
 
             {/* Navigation Links */}
             <div className="hidden md:flex items-center space-x-4">
-              <a
-                href="#"
+              <Link
+                href="/history"
                 className="text-slate-600 hover:text-sky-600 transition-colors"
               >
                 History
-              </a>
+              </Link>
             {!session && (
               <button
                 href="#"

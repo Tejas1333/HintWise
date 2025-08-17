@@ -1,123 +1,98 @@
 "use client";
 
 import { useState } from "react";
-import FlashCards from "@/components/FlashCards"; // Make sure this path is correct
+import FlashCards from "@/components/FlashCards";
+
+// NOTE: The FlashCards component is now defined directly in this file
+// to resolve the import error and make the code self-contained.
+
 
 export default function HomePage() {
   const [problemQuery, setProblemQuery] = useState("");
-  const [invalidParameters, setInvalidParameters] = useState(false);
   const [initialHintType, setInitialHintType] = useState("Slight");
   const [hintResponse, setHintResponse] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // NEW: State to hold the unique ID for the current session
+  const [sessionId, setSessionId] = useState(null);
 
-  // This handler is now used for all new hint generations, including upgrades.
-const handleGenerateHint = async (typeToGenerate) => {
-  setIsLoading(true);
-  setError(null);
-  setInvalidParameters(false);
+  const handleGenerateHint = async (typeToGenerate) => {
+    setIsLoading(true);
+    setError(null);
 
-  if (!problemQuery) {
-    setInvalidParameters(true);
-    setIsLoading(false);
-    return;
-  }
+    if (!problemQuery) {
+      setIsLoading(false);
+      return;
+    }
 
-  try {
-    // === STEP 1: Fetch the new hint from your AI API ===
-    const hintResponseFromServer = await fetch("http://localhost:3000/api/generate-hint", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: problemQuery,
+    try {
+      // Check if this is the first hint of a new session
+      const currentSessionId = sessionId || Date.now().toString();
+      if (!sessionId) {
+        setSessionId(currentSessionId);
+      }
+
+      const hintResponseFromServer = await fetch("http://localhost:3000/api/generate-hint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: problemQuery,
+          type: typeToGenerate,
+          hints: hintResponse,
+        }),
+      });
+
+      if (!hintResponseFromServer.ok) {
+        const errorData = await hintResponseFromServer.json();
+        throw new Error(errorData.message || "Failed to generate hint");
+      }
+
+      const hint = await hintResponseFromServer.json();
+
+      const newHintObject = {
+        id: Date.now(),
         type: typeToGenerate,
-        hints: hintResponse, // Send previous hints for context
-      }),
-    });
+        content: hint.hintResponse,
+      };
 
-    if (!hintResponseFromServer.ok) {
-      // This is where the HTML error is likely coming from
-      const errorData = await hintResponseFromServer.json();
-      throw new Error(errorData.message || "Failed to generate hint");
+      const updatedHints = [...hintResponse, newHintObject];
+      setHintResponse(updatedHints);
+
+      // UPDATED: Send the sessionId along with the other data
+      const dbResponse = await fetch("http://localhost:3000/api/users", {
+        method: "POST",
+        headers: { "Content-type": "application/json" },
+        body: JSON.stringify({
+          sessionId: currentSessionId, // <-- SEND THE SESSION ID
+          problemQuery: problemQuery,
+          hintResponse: updatedHints
+        }),
+      });
+      
+      if (!dbResponse.ok) {
+          throw new Error("Failed to save data to the database.");
+      }
+
+      console.log("Successfully generated hint and saved to DB.");
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    const hint = await hintResponseFromServer.json();
-
-    // === STEP 2: Create the new hint object ===
-    const newHintObject = {
-      id: Date.now(),
-      type: typeToGenerate,
-      content: hint.hintResponse,
-    };
-
-    // === STEP 3: Calculate the next state of the hints array ===
-    const updatedHints = [...hintResponse, newHintObject];
-
-    // === STEP 4: Update the UI so the user sees the new hint immediately ===
-    setHintResponse(updatedHints);
-
-    // === STEP 5: Save the *correct, updated* data to the database ===
-    const dbResponse = await fetch("http://localhost:3000/api/users", {
-      method: "POST",
-      headers: { "Content-type": "application/json" },
-      body: JSON.stringify({ 
-        problemQuery : problemQuery,
-        hintResponse: updatedHints
-      }),
-    });
-    
-    if (!dbResponse.ok) {
-        throw new Error("Failed to save data to the database.");
-    }
-
-    console.log("Successfully generated hint and saved to DB.");
-
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-  // Helper to clear state and start a new problem
   const handleStartOver = () => {
     setHintResponse([]);
     setError(null);
     setProblemQuery("");
+    setSessionId(null); // Reset the session ID for a new problem
   };
 
-const createDoc = async () => {
-  try {
-    const response = await fetch('/api/users', { // Using a relative URL is better
-      method: "POST",
-      headers: { 'Content-type': 'application/json' },
-      body: JSON.stringify({
-        initialHintType: initialHintType,
-        hintResponse: hintResponse
-      })
-    });
-
-    // Check if the request was successful
-    if (!response.ok) {
-      // If the server responded with an error, throw an error to be caught by the catch block
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Something went wrong');
-    }
-
-    // You can get the data back from the server if you want
-    const result = await response.json();
-    console.log('Successfully saved to DB:', result.data);
-    // You could add success feedback to the user here, e.g., setSuccess(true)
-
-  } catch (error) {
-    console.error('Failed to save data:', error);
-    // You could show an error message to the user here, e.g., setError(error.message)
-  }
-};
-  
-  // Determine the type of the last hint received to drive the UI logic
   const lastHint = hintResponse.length > 0 ? hintResponse[hintResponse.length - 1] : null;
 
+  // ... rest of your JSX remains the same
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4 sm:p-8">
       <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-3xl">
@@ -128,7 +103,6 @@ const createDoc = async () => {
           Get AI-powered hints for DSA problems
         </p>
 
-        {/* Show input form only if no hints have been generated yet */}
         {hintResponse.length === 0 ? (
           <div className="space-y-6">
             <div>
@@ -169,7 +143,6 @@ const createDoc = async () => {
             </button>
           </div>
         ) : (
-          // Show this view after the first hint is generated
           <div className="text-center">
              <h2 className="text-xl font-semibold text-gray-800">{problemQuery}</h2>
           </div>
@@ -177,7 +150,6 @@ const createDoc = async () => {
 
         {error && <div className="mt-4 p-3 bg-red-100 border-red-400 text-red-700 rounded-lg">{error}</div>}
         
-        {/* Display area for hints */}
         <div className="mt-6 w-full space-y-6">
           {hintResponse.map((hint) => (
             <div key={hint.id} className="flex justify-center w-full">
@@ -186,7 +158,6 @@ const createDoc = async () => {
           ))}
         </div>
 
-        {/* --- NEW DYNAMIC BUTTON LOGIC --- */}
         {!isLoading && lastHint && (
           <div className="mt-8 pt-6 border-t border-gray-200">
             {lastHint.type === "Slight" && (
@@ -228,14 +199,14 @@ const createDoc = async () => {
                 <p className="font-semibold">You have the full solution! Good luck with the implementation.</p>
               </div>
             )}
-             <div className="text-center mt-6">
+              <div className="text-center mt-6">
                 <button 
                     onClick={handleStartOver}
                     className="text-gray-500 hover:text-gray-700 text-sm font-medium"
                 >
                     Start a new problem
                 </button>
-            </div>
+              </div>
           </div>
         )}
       </div>
