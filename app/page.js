@@ -12,47 +12,72 @@ export default function HomePage() {
   const [error, setError] = useState(null);
 
   // This handler is now used for all new hint generations, including upgrades.
-  const handleGenerateHint = async (typeToGenerate) => {
-    setIsLoading(true);
-    setError(null);
-    setInvalidParameters(false);
+const handleGenerateHint = async (typeToGenerate) => {
+  setIsLoading(true);
+  setError(null);
+  setInvalidParameters(false);
 
-    if (!problemQuery) {
-      setInvalidParameters(true);
-      setIsLoading(false);
-      return;
-    }
+  if (!problemQuery) {
+    setInvalidParameters(true);
+    setIsLoading(false);
+    return;
+  }
 
-    try {
-      const response = await fetch("http://localhost:3000/api/generate-hint", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: problemQuery,
-          type: typeToGenerate,
-          hints: hintResponse, // Send previous hints for context
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "An unknown error occurred");
-      }
-
-      const hint = await response.json();
-      const newHintObject = {
-        id: Date.now(),
+  try {
+    // === STEP 1: Fetch the new hint from your AI API ===
+    const hintResponseFromServer = await fetch("http://localhost:3000/api/generate-hint", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: problemQuery,
         type: typeToGenerate,
-        content: hint.hintResponse,
-      };
+        hints: hintResponse, // Send previous hints for context
+      }),
+    });
 
-      setHintResponse((prev) => [...prev, newHintObject]);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+    if (!hintResponseFromServer.ok) {
+      // This is where the HTML error is likely coming from
+      const errorData = await hintResponseFromServer.json();
+      throw new Error(errorData.message || "Failed to generate hint");
     }
-  };
+
+    const hint = await hintResponseFromServer.json();
+
+    // === STEP 2: Create the new hint object ===
+    const newHintObject = {
+      id: Date.now(),
+      type: typeToGenerate,
+      content: hint.hintResponse,
+    };
+
+    // === STEP 3: Calculate the next state of the hints array ===
+    const updatedHints = [...hintResponse, newHintObject];
+
+    // === STEP 4: Update the UI so the user sees the new hint immediately ===
+    setHintResponse(updatedHints);
+
+    // === STEP 5: Save the *correct, updated* data to the database ===
+    const dbResponse = await fetch("http://localhost:3000/api/users", {
+      method: "POST",
+      headers: { "Content-type": "application/json" },
+      body: JSON.stringify({ 
+        problemQuery : problemQuery,
+        hintResponse: updatedHints
+      }),
+    });
+    
+    if (!dbResponse.ok) {
+        throw new Error("Failed to save data to the database.");
+    }
+
+    console.log("Successfully generated hint and saved to DB.");
+
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Helper to clear state and start a new problem
   const handleStartOver = () => {
@@ -137,9 +162,7 @@ const createDoc = async () => {
             <button
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out disabled:opacity-50"
               onClick={() => {
-                handleGenerateHint(initialHintType)
-                createDoc(initialHintType, hintResponse)
-              }}
+                handleGenerateHint(initialHintType)              }}
               disabled={isLoading || !problemQuery}
             >
               {isLoading ? "Generating..." : "Get First Hint"}

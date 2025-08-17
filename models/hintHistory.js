@@ -1,21 +1,20 @@
 import mongoose from 'mongoose';
 
 // The schema you will use for each entry
-const hintHistorySchema = new mongoose.Schema({
-  // The field from your client-side state was initialHintType,
-  // but your API route receives it as 'type'. Let's stick to a clear name.
-  initialHintType: String,
-  
-  // This field contains the array of hint objects
-  hintResponse: [{
-    id: Number,
-    type: String,
-    content: String
-  }]
-}, {
-  // Adds createdAt and updatedAt timestamps automatically
-  timestamps: true 
-});
+
+  const hintSchema = new mongoose.Schema({
+    id : Number,
+    type : String,
+    content : String
+  }, {_id : false}) // _id: false prevents Mongo from adding an _id to each hint object
+
+  const sessionHistorySchema = new mongoose.Schema({
+    problemQuery : {
+      type : String,
+      required : true
+    },
+    hints : [hintSchema]
+  }, {timestamps : true})
 
 // This prevents Mongoose from redefining the model on every hot-reload
-export default mongoose.models.HintHistory || mongoose.model('HintHistory', hintHistorySchema);
+export default mongoose.models.SessionHistory || mongoose.model('SessionHistory', sessionHistorySchema);
