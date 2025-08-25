@@ -12,10 +12,40 @@ const FlashCards = ({ content, hintType }) => {
     setIsFlipped(!isFlipped);
   };
 
+  // Define styles based on hint type for better visual distinction
+  const cardStyles = {
+    Slight: {
+      frontBg: "bg-blue-500",
+      frontBorder: "border-blue-600",
+      frontText: "text-white",
+      frontSubText: "text-blue-200",
+      backBg: "bg-gray-100",
+      backBorder: "border-gray-300",
+    },
+    Medium: {
+      frontBg: "bg-cyan-500",
+      frontBorder: "border-cyan-600",
+      frontText: "text-white",
+      frontSubText: "text-cyan-200",
+      backBg: "bg-gray-100",
+      backBorder: "border-gray-300",
+    },
+    Full: {
+      frontBg: "bg-green-500",
+      frontBorder: "border-green-600",
+      frontText: "text-white",
+      frontSubText: "text-green-200",
+      backBg: "bg-gray-50", // Lighter background for better code readability
+      backBorder: "border-green-400",
+    },
+  };
+
+  const currentStyle = cardStyles[hintType] || cardStyles.Slight;
+  const cardTitle = hintType === "Full" ? "Full Solution" : `${hintType} Hint`;
+
   return (
-    // The main container. Removed fixed height. It's now responsive.
     <div
-      className="w-full max-w-xl [perspective:1000px] mt-5 cursor-pointer"
+      className="w-full max-w-xl [perspective:1000px] mt-5 cursor-pointer group"
       onClick={handleFlip}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -26,35 +56,38 @@ const FlashCards = ({ content, hintType }) => {
       role="button"
       aria-pressed={isFlipped}
     >
-      {/* This inner div handles the 3D transformation */}
       <div
         className={`relative w-full transition-transform duration-700 [transform-style:preserve-3d] ${
           isFlipped ? "[transform:rotateY(180deg)]" : ""
         }`}
       >
-        {/* This is the new grid container. Both front and back faces are placed
-          in the same grid cell (1x1), allowing them to stack. The parent
-          grid will automatically resize to fit the tallest content.
-        */}
         <div className="grid [transform-style:preserve-3d]">
           {/* Front of the card */}
-          <div className="[grid-area:1/1] w-full min-h-[20rem] rounded-xl bg-blue-500 border border-slate-700 shadow-2xl flex items-center justify-center p-8 [backface-visibility:hidden]">
+          <div
+            className={`[grid-area:1/1] w-full min-h-[20rem] rounded-xl border shadow-lg flex items-center justify-center p-8 [backface-visibility:hidden] transition-all duration-300 group-hover:shadow-2xl group-hover:scale-[1.02] ${currentStyle.frontBg} ${currentStyle.frontBorder}`}
+          >
             <div className="text-center">
-              <p className="text-2xl md:text-3xl font-semibold text-slate-200">
-                {hintType} Hint
+              <p className={`text-2xl md:text-3xl font-semibold ${currentStyle.frontText}`}>
+                {cardTitle}
               </p>
-              <p className="text-sm text-blue-200 mt-2">(Click to reveal)</p>
+              <p className={`text-sm mt-2 ${currentStyle.frontSubText}`}>
+                (Click to reveal)
+              </p>
             </div>
           </div>
 
-          {/* Back of the card (with responsive height) */}
-          <div className="[grid-area:1/1] w-full min-h-[20rem] rounded-xl bg-gray-200 border border-cyan-400 shadow-2xl flex items-center justify-center p-8 [transform:rotateY(180deg)] [backface-visibility:hidden] text-black">
+          {/* Back of the card */}
+          <div
+            className={`[grid-area:1/1] w-full min-h-[20rem] rounded-xl border shadow-lg flex items-center justify-center p-8 [transform:rotateY(180deg)] [backface-visibility:hidden] text-gray-800 ${currentStyle.backBg} ${currentStyle.backBorder}`}
+          >
+            <div className="prose max-w-none w-full">
               <ReactMarkdown
                 rehypePlugins={[rehypeKatex]}
                 remarkPlugins={[remarkGfm]}
               >
                 {content}
               </ReactMarkdown>
+            </div>
           </div>
         </div>
       </div>

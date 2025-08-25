@@ -16,17 +16,17 @@ const NavBar = () => {
     const { data: session } = useSession();
     const user = session?.user;
   return (
-    <div>
-      <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
+    <header>
+      <nav className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md shadow-sm z-10 border-b border-gray-200">
         <div className="w-full max-w-5xl mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             {/* Logo and App Name */}
-            <div className="flex items-center space-x-2">
+            <Link href="/" className="flex items-center space-x-2">
               <LogoIcon />
               <span className="text-xl font-bold text-slate-800">
                 HintWise AI
               </span>
-            </div>
+            </Link>
 
             {/* Navigation Links */}
             <div className="hidden md:flex items-center space-x-4">
@@ -38,7 +38,6 @@ const NavBar = () => {
               </Link>
             {!session && (
               <button
-                href="#"
                 className="px-4 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-md transition-colors"
                 onClick={()=>{
                   signIn('google', {callbackUrl: "/"})
@@ -48,11 +47,10 @@ const NavBar = () => {
               </button>
             )}
             {session && (
-              <div className="">
-                <span className="text-black">{user?.name}</span>
+              <div className="flex items-center space-x-4">
+                <span className="text-slate-700 font-medium">{session.user?.name}</span>
               <button
-                href="#"
-                className="px-4 py-2 m-4 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-md transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-700 hover:bg-gray-800 rounded-md transition-colors"
                 onClick={()=>{
                   signOut()
                 }}
@@ -63,7 +61,7 @@ const NavBar = () => {
             )}
             </div>
 
-            {/* Mobile Menu Button (Optional, for future use) */}
+            {/* Mobile Menu Button */}
             <div className="md:hidden">
               <button className="text-slate-600 hover:text-slate-800">
                 <svg
@@ -84,7 +82,7 @@ const NavBar = () => {
           </div>
         </div>
       </nav>
-    </div>
+    </header>
   );
 };
 
