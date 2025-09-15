@@ -6,6 +6,7 @@ import FlashCards from "@/components/FlashCards";
 // NOTE: The FlashCards component is now defined directly in this file
 // to resolve the import error and make the code self-contained.
 
+
 // YouTube Icon Component
 const YouTubeIcon = () => (
   <svg
@@ -23,7 +24,6 @@ const YouTubeIcon = () => (
   </svg>
 );
 
-
 export default function HomePage() {
   const [problemQuery, setProblemQuery] = useState("");
   const [initialHintType, setInitialHintType] = useState("Slight");
@@ -32,7 +32,6 @@ export default function HomePage() {
   const [error, setError] = useState(null);
   const [videoSolutionUrl, setVideoSolutionUrl] = useState("");
 
-  
   // NEW: State to hold the unique ID for the current session
   const [sessionId, setSessionId] = useState(null);
 
@@ -48,13 +47,14 @@ export default function HomePage() {
     try {
       if (hintResponse.length === 0) {
         const searchQuery = `${problemQuery} algorithm explanation`;
-        const encodedQuery = encodeURIComponent(searchQuery).replace("/%20/g", "+");
+        const encodedQuery = encodeURIComponent(searchQuery).replace(
+          "/%20/g",
+          "+"
+        );
         // This URL structure creates a playlist from the search query and autoplays the first video.
         const youtubeUrl = `https://www.youtube.com/results?search_query=${encodedQuery}`;
         setVideoSolutionUrl(youtubeUrl);
       }
-
-
 
       // Check if this is the first hint of a new session
       const currentSessionId = sessionId || Date.now().toString();
@@ -62,15 +62,18 @@ export default function HomePage() {
         setSessionId(currentSessionId);
       }
 
-      const hintResponseFromServer = await fetch("http://localhost:3000/api/generate-hint", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: problemQuery,
-          type: typeToGenerate,
-          hints: hintResponse,
-        }),
-      });
+      const hintResponseFromServer = await fetch(
+        "http://localhost:3000/api/generate-hint",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: problemQuery,
+            type: typeToGenerate,
+            hints: hintResponse,
+          }),
+        }
+      );
 
       if (!hintResponseFromServer.ok) {
         const errorData = await hintResponseFromServer.json();
@@ -95,16 +98,15 @@ export default function HomePage() {
         body: JSON.stringify({
           sessionId: currentSessionId, // <-- SEND THE SESSION ID
           problemQuery: problemQuery,
-          hintResponse: updatedHints
+          hintResponse: updatedHints,
         }),
       });
-      
+
       if (!dbResponse.ok) {
-          throw new Error("Failed to save data to the database.");
+        throw new Error("Failed to save data to the database.");
       }
 
       console.log("Successfully generated hint and saved to DB.");
-
     } catch (err) {
       setError(err.message);
     } finally {
@@ -119,10 +121,11 @@ export default function HomePage() {
     setSessionId(null); // Reset the session ID for a new problem
   };
 
-  const lastHint = hintResponse.length > 0 ? hintResponse[hintResponse.length - 1] : null;
+  const lastHint =
+    hintResponse.length > 0 ? hintResponse[hintResponse.length - 1] : null;
 
   // ... rest of your JSX remains the same
-   return (
+  return (
     <div className="min-h-screen bg-gray-50 font-sans">
       <main className="flex flex-col items-center justify-center p-4 pt-24">
         <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg w-full max-w-3xl border border-gray-200">
@@ -136,7 +139,10 @@ export default function HomePage() {
           {hintResponse.length === 0 ? (
             <div className="space-y-6">
               <div>
-                <label htmlFor="problemQuery" className="block text-gray-700 text-sm font-semibold mb-2">
+                <label
+                  htmlFor="problemQuery"
+                  className="block text-gray-700 text-sm font-semibold mb-2"
+                >
                   Problem Description
                 </label>
                 <input
@@ -149,7 +155,10 @@ export default function HomePage() {
                 />
               </div>
               <div>
-                <label htmlFor="hintType" className="block text-gray-700 text-sm font-semibold mb-2">
+                <label
+                  htmlFor="hintType"
+                  className="block text-gray-700 text-sm font-semibold mb-2"
+                >
                   Starting Hint Level
                 </label>
                 <select
@@ -159,7 +168,9 @@ export default function HomePage() {
                   className="shadow-sm border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-sky-500 transition-shadow"
                 >
                   <option value="Slight">Slight Hint (A gentle nudge)</option>
-                  <option value="Medium">Medium Hint (A clear direction)</option>
+                  <option value="Medium">
+                    Medium Hint (A clear direction)
+                  </option>
                   <option value="Full">Full Hint (The core concept)</option>
                 </select>
               </div>
@@ -173,7 +184,9 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="flex justify-center items-center gap-3">
-              <h2 className="text-xl font-semibold text-gray-800">{problemQuery}</h2>
+              <h2 className="text-xl font-semibold text-gray-800">
+                {problemQuery}
+              </h2>
               {videoSolutionUrl && (
                 <a
                   href={videoSolutionUrl}
@@ -189,7 +202,11 @@ export default function HomePage() {
             </div>
           )}
 
-          {error && <div className="mt-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg">{error}</div>}
+          {error && (
+            <div className="mt-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+              {error}
+            </div>
+          )}
 
           <div className="mt-6 w-full space-y-6">
             {hintResponse.map((hint) => (
@@ -237,7 +254,9 @@ export default function HomePage() {
 
               {lastHint.type === "Full" && (
                 <div className="text-center p-4 bg-green-100 text-green-800 rounded-lg border border-green-200">
-                  <p className="font-semibold">You have the full hint! Best of luck.</p>
+                  <p className="font-semibold">
+                    You have the full hint! Best of luck.
+                  </p>
                 </div>
               )}
               <div className="text-center mt-6">
