@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import FlashCards from '@/components/FlashCards';
 
 // NOTE: A placeholder FlashCards component is defined here for completeness.
-// You should replace this with your actual component if it's in a separate file.
+// You should replace this with your actual component if it is in a separate file.
 
 // NEW: Accordion component to make each hint collapsible
 const HintAccordion = ({ hint, index }) => {
@@ -120,7 +120,7 @@ export default function HistoryPage() {
               <div className="text-center bg-white p-8 rounded-2xl shadow-lg">
                 <h3 className="text-xl font-semibold text-gray-700">No History Found</h3>
                 <p className="text-gray-500 mt-2">
-                  It looks like you haven't saved any sessions yet. Go generate some hints!
+                  It looks like you have not saved any sessions yet. Go generate some hints!
                 </p>
               </div>
             )}

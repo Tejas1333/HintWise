@@ -25,7 +25,7 @@ export async function POST(request) {
       },
       {
         new: true,      // Return the modified document instead of the original
-        upsert: true    // Create a new document if one doesn't exist
+        upsert: true    // Create a new document if one does not exist
       }
     );
 
