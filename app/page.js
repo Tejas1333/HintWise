@@ -1,3 +1,4 @@
+// page.js
 "use client";
 
 import { useState } from "react";
@@ -5,7 +6,6 @@ import FlashCards from "@/components/FlashCards";
 
 // NOTE: The FlashCards component is now defined directly in this file
 // to resolve the import error and make the code self-contained.
-
 
 // YouTube Icon Component
 const YouTubeIcon = () => (
@@ -49,7 +49,7 @@ export default function HomePage() {
         const searchQuery = `${problemQuery} algorithm explanation`;
         const encodedQuery = encodeURIComponent(searchQuery).replace(
           "/%20/g",
-          "+"
+          "+",
         );
         // This URL structure creates a playlist from the search query and autoplays the first video.
         const youtubeUrl = `https://www.youtube.com/results?search_query=${encodedQuery}`;
@@ -72,7 +72,7 @@ export default function HomePage() {
             type: typeToGenerate,
             hints: hintResponse,
           }),
-        }
+        },
       );
 
       if (!hintResponseFromServer.ok) {
@@ -85,8 +85,9 @@ export default function HomePage() {
       const newHintObject = {
         id: Date.now(),
         type: typeToGenerate,
-        content: hint.hintResponse,
+        content: hint.hintResponse || "No hint received",
       };
+      // console.log(hint)
 
       const updatedHints = [...hintResponse, newHintObject];
       setHintResponse(updatedHints);

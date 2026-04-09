@@ -1,3 +1,4 @@
+// history/route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/connectDB";
 import SessionHistory from "@/models/hintHistory"; // Make sure to import your model
