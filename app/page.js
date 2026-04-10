@@ -9,7 +9,7 @@ const YouTubeIcon = () => (
     width="24"
     height="24"
     viewBox="0 0 24 24"
-    className="h-7 w-7"
+    className="h-7 w-7 bg-black"
   >
     <path
       fill="currentColor"
@@ -38,7 +38,6 @@ export default function HomePage() {
     }
 
     try {
-      // 🎥 YouTube link on first hint
       if (hintResponse.length === 0) {
         const searchQuery = `${problemQuery} algorithm explanation`;
         const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
@@ -69,15 +68,34 @@ export default function HomePage() {
       }
 
       const data = await res.json();
+      const response = data.hintResponse;
+
+      // 🔥 HANDLE STRUCTURED RESPONSE
+      let content = "";
+
+      if (typeof response === "string") {
+        content = response;
+      } else if (response?.feedback) {
+        content = `🧠 ${response.feedback}`;
+
+        if (response.hint) {
+          content += `\n\n💡 Hint: ${response.hint}`;
+        }
+
+        if (response.step_analysis?.reached_step !== null) {
+          content += `\n\n📍 You reached step: ${response.step_analysis.reached_step}`;
+        }
+      } else {
+        content = "No response";
+      }
 
       const newHint = {
         id: Date.now(),
-        content: data.hintResponse || "No response",
+        content,
       };
 
       setHintResponse((prev) => [...prev, newHint]);
 
-      // clear attempt after submit
       if (action === "USER_ATTEMPT") {
         setUserAttempt("");
       }
@@ -113,7 +131,7 @@ export default function HomePage() {
                 type="text"
                 value={problemQuery}
                 onChange={(e) => setProblemQuery(e.target.value)}
-                className="shadow-sm border border-gray-300 rounded-lg w-full py-3 px-4"
+                className="shadow-sm border border-gray-300 rounded-lg w-full py-3 px-4 bg-black"
                 placeholder="e.g., Find two numbers that sum to target"
               />
 
@@ -159,7 +177,7 @@ export default function HomePage() {
                 value={userAttempt}
                 onChange={(e) => setUserAttempt(e.target.value)}
                 placeholder="Write your approach or code here..."
-                className="w-full p-3 border border-gray-300 rounded-lg"
+                className="w-full p-3 border border-gray-300 rounded-lg bg-black"
               />
 
               <button
@@ -191,7 +209,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* RESET */}
           <div className="text-center mt-6">
             <button
               onClick={handleStartOver}
