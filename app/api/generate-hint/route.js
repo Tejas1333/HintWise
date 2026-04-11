@@ -1,4 +1,5 @@
 // route.js
+
 import { runHintwisePipeline } from "@/lib/hintwise-v2/orchestrator";
 import connectDB from "@/lib/connectDB";
 import Session from "@/models/session";
@@ -6,25 +7,29 @@ import Session from "@/models/session";
 export async function POST(req) {
   await connectDB();
 
-const { query, action, sessionId, userAttempt } = await req.json();
-  // 🔍 Load existing session
+  const { query, action, userAttempt, sessionId } = await req.json();
+
+  // 🔍 Load session
   let session = await Session.findOne({ sessionId });
 
   let state = session?.state || {};
   let userProfile = session?.userProfile || {};
 
-const input = userAttempt && userAttempt.trim() !== "" 
-  ? userAttempt 
-  : query;
+  const input =
+    userAttempt && userAttempt.trim() !== ""
+      ? userAttempt + query + action
+      : query;
 
-const response = await runHintwisePipeline(
-  input,
-  action,
-  state,
-  userProfile
-);
+  // 🔥 SINGLE ENTRY POINT
+  const response = await runHintwisePipeline(
+    input,
+    action,
+    state,
+    userProfile,
+    query // pass original problem always
+  );
 
-  // 💾 Save updated state
+  // 💾 Save state
   await Session.findOneAndUpdate(
     { sessionId },
     {

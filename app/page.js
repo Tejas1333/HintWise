@@ -13,11 +13,55 @@ const YouTubeIcon = () => (
   >
     <path
       fill="currentColor"
-      d="M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.267,4,12,4,12,4S5.733,4,4.186,4.418c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.733,2,12,2,12s0,4.267,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768C5.733,20,12,20,12,20s6.267,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.267,22,12,22,12S22,7.733,21.582,6.186z"
+      d="M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.267,4,12,4,12,4S5.733,4,4.186,4.418c-0.86,0.23-1.538,0.908,1.768,1.768C2,7.733,2,12,2,12s0,4.267,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768C5.733,20,12,20,12,20s6.267,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.267,22,12,22,12S22,7.733,21.582,6.186z"
     />
     <path fill="#FFFFFF" d="M10,15.5l6-3.5l-6-3.5V15.5z" />
   </svg>
 );
+
+function formatFullSolution(data) {
+  // 🔥 FIX: handle string JSON
+  if (typeof data === "string") {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      try {
+        const match = data.match(/\{[\s\S]*\}/);
+        if (match) data = JSON.parse(match[0]);
+      } catch {
+        return `📘 FULL SOLUTION\n\n${data}`;
+      }
+    }
+  }
+
+  return `
+📘 FULL SOLUTION
+
+🧠 Approach:
+${data.approach || ""}
+
+💡 Intuition:
+${data.intuition || ""}
+
+💻 Code:
+${typeof data.code === "string" ? data.code : JSON.stringify(data.code, null, 2)}
+
+🧾 Pseudocode:
+${data.pseudocode || ""}
+
+⏱ Time Complexity:
+${data.time_complexity || ""}
+
+📦 Space Complexity:
+${data.space_complexity || ""}
+
+⚠️ Edge Cases:
+${(data.edge_cases || []).join(", ")}
+
+🚫 Common Mistakes:
+${(data.common_mistakes || []).join(", ")}
+`;
+}
 
 export default function HomePage() {
   const [problemQuery, setProblemQuery] = useState("");
@@ -41,7 +85,7 @@ export default function HomePage() {
       if (hintResponse.length === 0) {
         const searchQuery = `${problemQuery} algorithm explanation`;
         const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
-          searchQuery
+          searchQuery,
         )}`;
         setVideoSolutionUrl(youtubeUrl);
       }
@@ -70,22 +114,94 @@ export default function HomePage() {
       const data = await res.json();
       const response = data.hintResponse;
 
-      // 🔥 HANDLE STRUCTURED RESPONSE
+      console.log("RESPONSE:", response); // 🔍 DEBUG
+
       let content = "";
 
-      if (typeof response === "string") {
+      // ✅ FULL SOLUTION MODE
+      if (response?.type === "FULL_SOLUTION") {
+        const sol = response.data;
+
+        content = (
+          <div className="space-y-4 text-left">
+            <h2 className="text-xl font-bold text-green-600">
+              📘 Full Solution
+            </h2>
+
+            <div>
+              <h3 className="font-semibold">🧠 Approach</h3>
+              <p>{sol.approach}</p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold">💡 Intuition</h3>
+              <p>{sol.intuition}</p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold">💻 Code</h3>
+              <pre className="bg-black text-green-400 p-3 rounded overflow-x-auto">
+                {sol.code}
+              </pre>
+            </div>
+
+            <div>
+              <h3 className="font-semibold">🧾 Pseudocode</h3>
+              <pre>{sol.pseudocode}</pre>
+            </div>
+
+            <div>
+              <h3 className="font-semibold">⏱ Complexity</h3>
+              <p>Time: {sol.time_complexity}</p>
+              <p>Space: {sol.space_complexity}</p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold">⚠️ Edge Cases</h3>
+              <ul>
+                {(sol.edge_cases || []).map((e, i) => (
+                  <li key={i}>• {e}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-semibold">🚫 Common Mistakes</h3>
+              <ul>
+                {(sol.common_mistakes || []).map((e, i) => (
+                  <li key={i}>• {e}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      }
+
+      // ✅ STRING RESPONSE
+      else if (typeof response === "string") {
         content = response;
-      } else if (response?.feedback) {
+      }
+
+      // ✅ STRUCTURED RESPONSE (HINT / ATTEMPT)
+      else if (response?.feedback) {
         content = `🧠 ${response.feedback}`;
 
         if (response.hint) {
           content += `\n\n💡 Hint: ${response.hint}`;
         }
 
-        if (response.step_analysis?.reached_step !== null) {
+        // ✅ SAFE ACCESS (FIXED BUG)
+        if (
+          response.step_analysis &&
+          response.step_analysis.reached_step !== undefined &&
+          response.step_analysis.reached_step !== null
+        ) {
           content += `\n\n📍 You reached step: ${response.step_analysis.reached_step}`;
         }
-      } else {
+      }
+
+      // ✅ FALLBACK
+      else {
         content = "No response";
       }
 
@@ -94,7 +210,14 @@ export default function HomePage() {
         content,
       };
 
-      setHintResponse((prev) => [...prev, newHint]);
+      setHintResponse((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          title: "Hint", // 🔥 FIX
+          content,
+        },
+      ]);
 
       if (action === "USER_ATTEMPT") {
         setUserAttempt("");
@@ -163,7 +286,7 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* 🔥 HINTS */}
+          {/* 🔥 HINTS / SOLUTION */}
           <div className="mt-6 space-y-4">
             {hintResponse.map((hint) => (
               <FlashCards key={hint.id} content={hint.content} />
