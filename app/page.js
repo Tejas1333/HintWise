@@ -3,6 +3,7 @@
 import { useState } from "react";
 import FlashCards from "@/components/FlashCards";
 
+
 const YouTubeIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -118,64 +119,12 @@ export default function HomePage() {
 
       let content = "";
 
-      // ✅ FULL SOLUTION MODE
-      if (response?.type === "FULL_SOLUTION") {
-        const sol = response.data;
+      
 
-        content = (
-          <div className="space-y-4 text-left">
-            <h2 className="text-xl font-bold text-green-600">
-              📘 Full Solution
-            </h2>
-
-            <div>
-              <h3 className="font-semibold">🧠 Approach</h3>
-              <p>{sol.approach}</p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold">💡 Intuition</h3>
-              <p>{sol.intuition}</p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold">💻 Code</h3>
-              <pre className="bg-black text-green-400 p-3 rounded overflow-x-auto">
-                {sol.code}
-              </pre>
-            </div>
-
-            <div>
-              <h3 className="font-semibold">🧾 Pseudocode</h3>
-              <pre>{sol.pseudocode}</pre>
-            </div>
-
-            <div>
-              <h3 className="font-semibold">⏱ Complexity</h3>
-              <p>Time: {sol.time_complexity}</p>
-              <p>Space: {sol.space_complexity}</p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold">⚠️ Edge Cases</h3>
-              <ul>
-                {(sol.edge_cases || []).map((e, i) => (
-                  <li key={i}>• {e}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold">🚫 Common Mistakes</h3>
-              <ul>
-                {(sol.common_mistakes || []).map((e, i) => (
-                  <li key={i}>• {e}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        );
-      }
+        if (response?.type === "FULL_SOLUTION") {
+          content = formatFullSolution(response.data);
+        }
+      
 
       // ✅ STRING RESPONSE
       else if (typeof response === "string") {
@@ -287,9 +236,9 @@ export default function HomePage() {
           )}
 
           {/* 🔥 HINTS / SOLUTION */}
-          <div className="mt-6 space-y-4">
+          <div className="mt-6 space-y-4 w-full max-w-3xl mx-auto">
             {hintResponse.map((hint) => (
-              <FlashCards key={hint.id} content={hint.content} />
+              <FlashCards key={hint.id} title={hint.title} content={hint.content} />
             ))}
           </div>
 

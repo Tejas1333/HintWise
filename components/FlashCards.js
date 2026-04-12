@@ -1,20 +1,19 @@
 "use client";
 
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import "katex/dist/katex.min.css";
 
-const FlashCards = ({ content, hintType }) => {
+const FlashCards = ({ content, hintType, title }) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
   };
 
-  // Define styles based on hint type for better visual distinction
+  // 🎨 Styles
   const cardStyles = {
     Slight: {
       frontBg: "bg-blue-500",
@@ -37,17 +36,19 @@ const FlashCards = ({ content, hintType }) => {
       frontBorder: "border-green-600",
       frontText: "text-white",
       frontSubText: "text-green-200",
-      backBg: "bg-gray-50", // Lighter background for better code readability
+      backBg: "bg-gray-50",
       backBorder: "border-green-400",
     },
   };
 
   const currentStyle = cardStyles[hintType] || cardStyles.Slight;
-  const cardTitle = hintType === "Full" ? "Full Solution" : `${hintType} Hint`;
+
+  const cardTitle =
+    title || (hintType === "Full" ? "Full Solution" : `${hintType} Hint`);
 
   return (
     <div
-      className="w-full max-w-xl [perspective:1000px] mt-5 cursor-pointer group"
+      className="w-full [perspective:1000px] mt-5 cursor-pointer group"
       onClick={handleFlip}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -64,12 +65,13 @@ const FlashCards = ({ content, hintType }) => {
         }`}
       >
         <div className="grid [transform-style:preserve-3d]">
-          {/* Front of the card */}
+
+          {/* 🔵 FRONT */}
           <div
-            className={`[grid-area:1/1] w-full min-h-[20rem] rounded-xl border shadow-lg flex items-center justify-center p-8 [backface-visibility:hidden] transition-all duration-300 group-hover:shadow-2xl group-hover:scale-[1.02] ${currentStyle.frontBg} ${currentStyle.frontBorder}`}
+            className={`[grid-area:1/1] w-full min-h-[12rem] rounded-xl border shadow-lg flex items-center justify-center p-6 [backface-visibility:hidden] transition-all duration-300 group-hover:shadow-2xl group-hover:scale-[1.02] ${currentStyle.frontBg} ${currentStyle.frontBorder}`}
           >
             <div className="text-center">
-              <p className={`text-2xl md:text-3xl font-semibold ${currentStyle.frontText}`}>
+              <p className={`text-xl md:text-2xl font-semibold ${currentStyle.frontText}`}>
                 {cardTitle}
               </p>
               <p className={`text-sm mt-2 ${currentStyle.frontSubText}`}>
@@ -78,19 +80,22 @@ const FlashCards = ({ content, hintType }) => {
             </div>
           </div>
 
-          {/* Back of the card */}
+          {/* 🟢 BACK (FULL HEIGHT, NO SCROLL, RESPONSIVE) */}
           <div
-            className={`[grid-area:1/1] w-full min-h-[20rem] rounded-xl border shadow-lg flex items-center justify-center p-8 [transform:rotateY(180deg)] [backface-visibility:hidden] text-gray-800 ${currentStyle.backBg} ${currentStyle.backBorder}`}
+            className={`[grid-area:1/1] w-full rounded-xl border shadow-lg p-6 [transform:rotateY(180deg)] [backface-visibility:hidden] text-gray-800 flex flex-col items-start justify-start ${currentStyle.backBg} ${currentStyle.backBorder}`}
           >
-            <div className="prose max-w-none w-full">
-              <ReactMarkdown
-                rehypePlugins={[rehypeKatex]}
-                remarkPlugins={[remarkGfm]}
-              >
-                {content}
-              </ReactMarkdown>
+            <div className="w-full">
+              <div className="prose prose-sm max-w-none break-words whitespace-pre-wrap">
+                <ReactMarkdown
+                  rehypePlugins={[rehypeKatex]}
+                  remarkPlugins={[remarkGfm]}
+                >
+                  {content}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>

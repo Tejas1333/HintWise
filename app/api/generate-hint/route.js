@@ -1,4 +1,6 @@
-// route.js
+// ===============================
+// ✅ route.js (SAFE RESPONSE)
+// ===============================
 
 import { runHintwisePipeline } from "@/lib/hintwise-v2/orchestrator";
 import connectDB from "@/lib/connectDB";
@@ -9,27 +11,23 @@ export async function POST(req) {
 
   const { query, action, userAttempt, sessionId } = await req.json();
 
-  // 🔍 Load session
   let session = await Session.findOne({ sessionId });
 
   let state = session?.state || {};
   let userProfile = session?.userProfile || {};
 
-  const input =
-    userAttempt && userAttempt.trim() !== ""
-      ? userAttempt + query + action
-      : query;
+  const input = userAttempt?.trim()
+    ? `${userAttempt}\n${query}\n${action}`
+    : query;
 
-  // 🔥 SINGLE ENTRY POINT
   const response = await runHintwisePipeline(
     input,
     action,
     state,
     userProfile,
-    query // pass original problem always
+    query
   );
 
-  // 💾 Save state
   await Session.findOneAndUpdate(
     { sessionId },
     {
@@ -43,3 +41,4 @@ export async function POST(req) {
 
   return Response.json({ hintResponse: response });
 }
+
