@@ -1,5 +1,5 @@
 // ===============================
-// ✅ route.js (SAFE RESPONSE)
+// ✅ route.js (FINAL)
 // ===============================
 
 import { runHintwisePipeline } from "@/lib/hintwise-v2/orchestrator";
@@ -16,16 +16,14 @@ export async function POST(req) {
   let state = session?.state || {};
   let userProfile = session?.userProfile || {};
 
-  const input = userAttempt?.trim()
-    ? `${userAttempt}\n${query}\n${action}`
-    : query;
-
   const response = await runHintwisePipeline(
-    input,
-    action,
+    {
+      problemQuery: query,
+      userAttempt,
+      action,
+    },
     state,
-    userProfile,
-    query
+    userProfile
   );
 
   await Session.findOneAndUpdate(
@@ -41,4 +39,3 @@ export async function POST(req) {
 
   return Response.json({ hintResponse: response });
 }
-

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import FlashCards from "@/components/FlashCards";
 
-
 const YouTubeIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -21,7 +20,6 @@ const YouTubeIcon = () => (
 );
 
 function formatFullSolution(data) {
-  // 🔥 FIX: handle string JSON
   if (typeof data === "string") {
     try {
       data = JSON.parse(data);
@@ -73,6 +71,9 @@ export default function HomePage() {
   const [videoSolutionUrl, setVideoSolutionUrl] = useState("");
   const [sessionId, setSessionId] = useState(null);
 
+  // ✅ ADDED STATE
+  const [isSolutionShown, setIsSolutionShown] = useState(false);
+
   const handleGenerateHint = async (action) => {
     setIsLoading(true);
     setError(null);
@@ -86,7 +87,7 @@ export default function HomePage() {
       if (hintResponse.length === 0) {
         const searchQuery = `${problemQuery} algorithm explanation`;
         const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
-          searchQuery,
+          searchQuery
         )}`;
         setVideoSolutionUrl(youtubeUrl);
       }
@@ -115,23 +116,18 @@ export default function HomePage() {
       const data = await res.json();
       const response = data.hintResponse;
 
-      console.log("RESPONSE:", response); // 🔍 DEBUG
-
       let content = "";
 
-      
+      // ✅ FULL SOLUTION
+      if (response?.type === "FULL_SOLUTION") {
+        content = formatFullSolution(response.data);
+        setIsSolutionShown(true); // 🔥 important
+      }
 
-        if (response?.type === "FULL_SOLUTION") {
-          content = formatFullSolution(response.data);
-        }
-      
-
-      // ✅ STRING RESPONSE
       else if (typeof response === "string") {
         content = response;
       }
 
-      // ✅ STRUCTURED RESPONSE (HINT / ATTEMPT)
       else if (response?.feedback) {
         content = `🧠 ${response.feedback}`;
 
@@ -139,7 +135,6 @@ export default function HomePage() {
           content += `\n\n💡 Hint: ${response.hint}`;
         }
 
-        // ✅ SAFE ACCESS (FIXED BUG)
         if (
           response.step_analysis &&
           response.step_analysis.reached_step !== undefined &&
@@ -149,22 +144,29 @@ export default function HomePage() {
         }
       }
 
-      // ✅ FALLBACK
       else {
         content = "No response";
       }
 
-      const newHint = {
-        id: Date.now(),
-        content,
-      };
+      let cleanedContent = content;
+
+      if (typeof cleanedContent === "string") {
+        try {
+          cleanedContent = JSON.parse(cleanedContent);
+        } catch {
+          cleanedContent = cleanedContent
+            .replace(/^"|"$/g, "")
+            .replace(/\\n/g, "\n")
+            .replace(/\\"/g, '"');
+        }
+      }
 
       setHintResponse((prev) => [
         ...prev,
         {
           id: Date.now(),
-          title: "Hint", // 🔥 FIX
-          content,
+          title: "Hint",
+          content: cleanedContent,
         },
       ]);
 
@@ -185,6 +187,7 @@ export default function HomePage() {
     setSessionId(null);
     setError(null);
     setVideoSolutionUrl("");
+    setIsSolutionShown(false); // 🔥 reset
   };
 
   const hasHints = hintResponse.length > 0;
@@ -235,15 +238,18 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* 🔥 HINTS / SOLUTION */}
           <div className="mt-6 space-y-4 w-full max-w-3xl mx-auto">
             {hintResponse.map((hint) => (
-              <FlashCards key={hint.id} title={hint.title} content={hint.content} />
+              <FlashCards
+                key={hint.id}
+                title={hint.title}
+                content={hint.content}
+              />
             ))}
           </div>
 
-          {/* 🔥 USER ATTEMPT */}
-          {hasHints && (
+          {/* ✅ USER ATTEMPT HIDDEN AFTER SOLUTION */}
+          {hasHints && !isSolutionShown && (
             <div className="mt-6">
               <textarea
                 value={userAttempt}
@@ -262,8 +268,8 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* 🔥 ACTION BUTTONS */}
-          {hasHints && !isLoading && (
+          {/* ✅ BUTTONS HIDDEN AFTER SOLUTION */}
+          {hasHints && !isLoading && !isSolutionShown && (
             <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
               <button
                 onClick={() => handleGenerateHint("NEXT_HINT")}
