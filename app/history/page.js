@@ -1,132 +1,155 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import FlashCards from '@/components/FlashCards';
+import { useState, useEffect } from "react";
+import FlashCards from "@/components/FlashCards";
 
-// NOTE: A placeholder FlashCards component is defined here for completeness.
-// You should replace this with your actual component if it is in a separate file.
-
-// NEW: Accordion component to make each hint collapsible
 const HintAccordion = ({ hint, index }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <div className="border rounded-lg overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 focus:outline-none"
+        className="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100"
       >
-        <span className="font-semibold text-gray-700">{`${hint.type} Hint #${index + 1}`}</span>
-        {/* Chevron icon that rotates based on the open state */}
-        <svg
-          className={`w-5 h-5 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-        </svg>
+        <span className="font-semibold">
+          {hint.type} #{index + 1}
+        </span>
+
+        <span>{isOpen ? "▲" : "▼"}</span>
       </button>
-      {/* Collapsible content area */}
+
       {isOpen && (
-        <div className="p-4 bg-white flex justify-center">
-          <FlashCards content={hint.content} hintType={hint.type} />
+        <div className="p-4 bg-white">
+          <FlashCards
+            title={hint.type}
+            content={
+              hint.type === "SOLUTION"
+                ? JSON.stringify(hint.content, null, 2)
+                : hint.content
+            }
+          />
         </div>
       )}
     </div>
   );
 };
 
-// A simple loading spinner component
-const LoadingSpinner = () => (
-  <div className="flex justify-center items-center p-10">
-    <div className="w-16 h-16 border-4 border-blue-500 border-dashed rounded-full animate-spin"></div>
-  </div>
-);
-
-// A simple error message component
-const ErrorMessage = ({ message }) => (
-  <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
-    <p className="font-bold">Error</p>
-    <p>{message || "Something went wrong. Please try again later."}</p>
-  </div>
-);
-
 export default function HistoryPage() {
+  const [sessions, setSessions] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
   const [history, setHistory] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  const userId = "user_123"; // 🔥 replace later
+
+  // =====================
+  // LOAD ALL SESSIONS
+  // =====================
   useEffect(() => {
-    const fetchHistory = async () => {
+    const fetchSessions = async () => {
       try {
-        const response = await fetch('/api/history');
-        if (!response.ok) {
-          throw new Error('Failed to fetch history data.');
-        }
-        const data = await response.json();
-        const sortedData = data.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setHistory(sortedData);
+        const res = await fetch(
+          `/api/session/list?userId=${userId}`
+        );
+        const data = await res.json();
+
+        setSessions(data.data || []);
       } catch (err) {
-        setError(err.message);
+        console.error(err);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
-    fetchHistory();
+
+    fetchSessions();
   }, []);
 
+  // =====================
+  // LOAD SINGLE SESSION
+  // =====================
+  const loadSession = async (sessionId) => {
+    try {
+      const res = await fetch(`/api/session/${sessionId}`);
+      const data = await res.json();
+
+      setSelectedSession(data.data);
+      setHistory(data.history || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // =====================
+  // UI
+  // =====================
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-2">
-            Session History
-          </h1>
-          <p className="text-center text-gray-600 mb-6">
-            Review your previously generated hints for all problems.
-          </p>
-          <div className="text-center">
-             <a href="/" className="text-blue-600 hover:text-blue-800 font-semibold transition-colors">
-                &larr; Back to Hint Generator
-             </a>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-100 p-6">
 
-        {isLoading && <LoadingSpinner />}
-        {error && <ErrorMessage message={error} />}
+      <h1 className="text-3xl font-bold text-center mb-6">
+        Session History
+      </h1>
 
-        {!isLoading && !error && (
-          <div className="space-y-12">
-            {history.length > 0 ? (
-              history.map((session) => (
-                <div key={session._id} className="bg-white p-6 rounded-2xl shadow-lg">
-                  <h2 className="text-2xl font-bold text-gray-800 border-b pb-3 mb-6">
-                    {session.problemQuery}
-                  </h2>
-                  <div className="space-y-4">
-                    {/* UPDATED: Map to the new HintAccordion component */}
-                    {session.hints.map((hint, index) => (
-                      <HintAccordion key={hint.id} hint={hint} index={index} />
-                    ))}
-                  </div>
-                   <p className="text-xs text-gray-400 text-right mt-4">
-                      Saved on: {new Date(session.createdAt).toLocaleString()}
-                   </p>
-                </div>
-              ))
-            ) : (
-              <div className="text-center bg-white p-8 rounded-2xl shadow-lg">
-                <h3 className="text-xl font-semibold text-gray-700">No History Found</h3>
-                <p className="text-gray-500 mt-2">
-                  It looks like you have not saved any sessions yet. Go generate some hints!
+      {/* ===================== */}
+      {/* SESSION LIST */}
+      {/* ===================== */}
+      {!selectedSession && (
+        <div className="space-y-4 max-w-3xl mx-auto">
+          {loading ? (
+            <p className="text-center">Loading...</p>
+          ) : sessions.length === 0 ? (
+            <p className="text-center">No sessions found</p>
+          ) : (
+            sessions.map((s) => (
+              <div
+                key={s.sessionId}
+                onClick={() => loadSession(s.sessionId)}
+                className="p-4 bg-white rounded-lg shadow cursor-pointer hover:bg-gray-50"
+              >
+                <h2 className="font-semibold text-lg">
+                  {s.problemQuery}
+                </h2>
+
+                <p className="text-sm text-gray-500">
+                  Step: {s.state?.current_step_index}
+                </p>
+
+                <p className="text-xs text-gray-400">
+                  {new Date(s.updatedAt).toLocaleString()}
                 </p>
               </div>
-            )}
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ===================== */}
+      {/* SESSION DETAILS */}
+      {/* ===================== */}
+      {selectedSession && (
+        <div className="max-w-3xl mx-auto">
+
+          <button
+            onClick={() => {
+              setSelectedSession(null);
+              setHistory([]);
+            }}
+            className="mb-4 text-blue-600"
+          >
+            ← Back
+          </button>
+
+          <h2 className="text-2xl font-bold mb-4">
+            {selectedSession.problemQuery}
+          </h2>
+
+          <div className="space-y-3">
+            {history.map((h, i) => (
+              <HintAccordion key={i} hint={h} index={i} />
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

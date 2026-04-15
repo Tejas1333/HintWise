@@ -1,9 +1,19 @@
-// @/models/session.js
 import mongoose from "mongoose";
+
+const hintSchema = new mongoose.Schema(
+  {
+    type: String, // HINT | ATTEMPT_FEEDBACK | SOLUTION
+    content: mongoose.Schema.Types.Mixed,
+    step_index: Number,
+    created_at: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
 
 const sessionSchema = new mongoose.Schema(
   {
     sessionId: { type: String, required: true, unique: true },
+    userId: { type: String, required: true },
 
     problemQuery: String,
 
@@ -17,12 +27,17 @@ const sessionSchema = new mongoose.Schema(
       hint_usage_count: Number,
       mistake_count: Number,
       struggle_score: Number,
-    },
 
-    userProfile: {
-      weak_patterns: [String],
-      hint_dependency: Number,
-      success_rate: Number,
+      last_analysis: Object,
+
+      attempt_history: [
+        {
+          mistake_type: String,
+        },
+      ],
+
+      // 🔥 NEW: FULL SESSION REPLAY
+      hint_history: [hintSchema],
     },
   },
   { timestamps: true }

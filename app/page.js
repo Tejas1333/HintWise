@@ -24,12 +24,7 @@ function formatFullSolution(data) {
     try {
       data = JSON.parse(data);
     } catch {
-      try {
-        const match = data.match(/\{[\s\S]*\}/);
-        if (match) data = JSON.parse(match[0]);
-      } catch {
-        return `📘 FULL SOLUTION\n\n${data}`;
-      }
+      return `📘 FULL SOLUTION\n\n${data}`;
     }
   }
 
@@ -43,7 +38,9 @@ ${data.approach || ""}
 ${data.intuition || ""}
 
 💻 Code:
-${typeof data.code === "string" ? data.code : JSON.stringify(data.code, null, 2)}
+${
+  typeof data.code === "string" ? data.code : JSON.stringify(data.code, null, 2)
+}
 
 🧾 Pseudocode:
 ${data.pseudocode || ""}
@@ -70,9 +67,10 @@ export default function HomePage() {
   const [error, setError] = useState(null);
   const [videoSolutionUrl, setVideoSolutionUrl] = useState("");
   const [sessionId, setSessionId] = useState(null);
-
-  // ✅ ADDED STATE
   const [isSolutionShown, setIsSolutionShown] = useState(false);
+
+  // 🔥 TEMP USER (replace with auth later)
+  const userId = "user_123";
 
   const handleGenerateHint = async (action) => {
     setIsLoading(true);
@@ -84,10 +82,11 @@ export default function HomePage() {
     }
 
     try {
+      // 🎥 YouTube suggestion (only first time)
       if (hintResponse.length === 0) {
         const searchQuery = `${problemQuery} algorithm explanation`;
         const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
-          searchQuery
+          searchQuery,
         )}`;
         setVideoSolutionUrl(youtubeUrl);
       }
@@ -95,39 +94,49 @@ export default function HomePage() {
       const currentSessionId = sessionId || Date.now().toString();
       if (!sessionId) setSessionId(currentSessionId);
 
-      const res = await fetch("/api/generate-hint", {
+      const res = await fetch("/api/session/run", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query: problemQuery,
-          action,
-          userAttempt,
           sessionId: currentSessionId,
+          userId,
+          problemQuery,
+          userAttempt,
+          action,
         }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to generate response");
+        throw new Error(data.error || "Request failed");
       }
 
-      const data = await res.json();
-      const response = data.hintResponse;
+      const response = data.data;
+      const history = data.history;
+
+      if (history && history.length > 0) {
+        setHintResponse(
+          history.map((h) => ({
+            id: Math.random(),
+            title: h.type,
+            content:
+              h.type === "SOLUTION" ? formatFullSolution(h.content) : h.content,
+          })),
+        );
+      }
 
       let content = "";
 
       // ✅ FULL SOLUTION
       if (response?.type === "FULL_SOLUTION") {
         content = formatFullSolution(response.data);
-        setIsSolutionShown(true); // 🔥 important
+        setIsSolutionShown(true);
       }
 
-      else if (typeof response === "string") {
-        content = response;
-      }
-
+      // ✅ NORMAL HINT FLOW
       else if (response?.feedback) {
         content = `🧠 ${response.feedback}`;
 
@@ -137,28 +146,12 @@ export default function HomePage() {
 
         if (
           response.step_analysis &&
-          response.step_analysis.reached_step !== undefined &&
-          response.step_analysis.reached_step !== null
+          response.step_analysis.reached_step !== undefined
         ) {
-          content += `\n\n📍 You reached step: ${response.step_analysis.reached_step}`;
+          content += `\n\n📍 Step: ${response.step_analysis.reached_step}`;
         }
-      }
-
-      else {
+      } else {
         content = "No response";
-      }
-
-      let cleanedContent = content;
-
-      if (typeof cleanedContent === "string") {
-        try {
-          cleanedContent = JSON.parse(cleanedContent);
-        } catch {
-          cleanedContent = cleanedContent
-            .replace(/^"|"$/g, "")
-            .replace(/\\n/g, "\n")
-            .replace(/\\"/g, '"');
-        }
       }
 
       setHintResponse((prev) => [
@@ -166,7 +159,7 @@ export default function HomePage() {
         {
           id: Date.now(),
           title: "Hint",
-          content: cleanedContent,
+          content,
         },
       ]);
 
@@ -187,7 +180,7 @@ export default function HomePage() {
     setSessionId(null);
     setError(null);
     setVideoSolutionUrl("");
-    setIsSolutionShown(false); // 🔥 reset
+    setIsSolutionShown(false);
   };
 
   const hasHints = hintResponse.length > 0;
@@ -196,9 +189,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50 font-sans">
       <main className="flex flex-col items-center justify-center p-4 pt-24">
         <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg w-full max-w-3xl border border-gray-200">
-          <h1 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-2">
-            HintWise AI
-          </h1>
+          <h1 className="text-3xl font-bold text-center mb-4">HintWise AI</h1>
 
           {!hasHints ? (
             <div className="space-y-6">
@@ -206,23 +197,20 @@ export default function HomePage() {
                 type="text"
                 value={problemQuery}
                 onChange={(e) => setProblemQuery(e.target.value)}
-                className="shadow-sm border border-gray-300 rounded-lg w-full py-3 px-4 bg-black"
-                placeholder="e.g., Find two numbers that sum to target"
+                className="border rounded-lg w-full py-3 px-4 bg-black text-white"
+                placeholder="e.g., Two Sum"
               />
 
               <button
                 onClick={() => handleGenerateHint("NEXT_HINT")}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg"
-                disabled={isLoading}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg"
               >
                 {isLoading ? "Thinking..." : "Start Solving"}
               </button>
             </div>
           ) : (
             <div className="flex justify-center items-center gap-3">
-              <h2 className="text-xl font-semibold text-gray-800">
-                {problemQuery}
-              </h2>
+              <h2 className="text-lg font-semibold">{problemQuery}</h2>
 
               {videoSolutionUrl && (
                 <a href={videoSolutionUrl} target="_blank">
@@ -232,13 +220,9 @@ export default function HomePage() {
             </div>
           )}
 
-          {error && (
-            <div className="mt-4 text-red-600 bg-red-100 p-3 rounded-lg">
-              {error}
-            </div>
-          )}
+          {error && <div className="mt-4 text-red-600">{error}</div>}
 
-          <div className="mt-6 space-y-4 w-full max-w-3xl mx-auto">
+          <div className="mt-6 space-y-4">
             {hintResponse.map((hint) => (
               <FlashCards
                 key={hint.id}
@@ -248,39 +232,36 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* ✅ USER ATTEMPT HIDDEN AFTER SOLUTION */}
           {hasHints && !isSolutionShown && (
             <div className="mt-6">
               <textarea
                 value={userAttempt}
                 onChange={(e) => setUserAttempt(e.target.value)}
-                placeholder="Write your approach or code here..."
-                className="w-full p-3 border border-gray-300 rounded-lg bg-black"
+                placeholder="Write your approach/code..."
+                className="w-full p-3 border rounded-lg bg-black text-white"
               />
 
               <button
                 onClick={() => handleGenerateHint("USER_ATTEMPT")}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded mt-2"
-                disabled={isLoading}
+                className="bg-purple-600 text-white px-4 py-2 rounded mt-2"
               >
                 Submit Attempt
               </button>
             </div>
           )}
 
-          {/* ✅ BUTTONS HIDDEN AFTER SOLUTION */}
-          {hasHints && !isLoading && !isSolutionShown && (
-            <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+          {hasHints && !isSolutionShown && (
+            <div className="mt-6 flex gap-4 justify-center">
               <button
                 onClick={() => handleGenerateHint("NEXT_HINT")}
-                className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2 rounded-lg"
+                className="bg-sky-500 text-white px-4 py-2 rounded"
               >
                 Next Hint
               </button>
 
               <button
                 onClick={() => handleGenerateHint("SHOW_SOLUTION")}
-                className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg"
+                className="bg-green-600 text-white px-4 py-2 rounded"
               >
                 Show Solution
               </button>
@@ -288,11 +269,8 @@ export default function HomePage() {
           )}
 
           <div className="text-center mt-6">
-            <button
-              onClick={handleStartOver}
-              className="text-gray-500 hover:text-gray-700 text-sm"
-            >
-              Start a new problem
+            <button onClick={handleStartOver} className="text-gray-500 text-sm">
+              Start New Problem
             </button>
           </div>
         </div>
