@@ -41,7 +41,7 @@ export default function HistoryPage() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const userId = "user_123"; // 🔥 replace later
+  const userId = "user_123";
 
   // =====================
   // LOAD ALL SESSIONS
@@ -49,11 +49,8 @@ export default function HistoryPage() {
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const res = await fetch(
-          `/api/session/list?userId=${userId}`
-        );
+        const res = await fetch(`/api/session/list?userId=${userId}`);
         const data = await res.json();
-
         setSessions(data.data || []);
       } catch (err) {
         console.error(err);
@@ -66,7 +63,7 @@ export default function HistoryPage() {
   }, []);
 
   // =====================
-  // LOAD SINGLE SESSION
+  // LOAD SESSION DETAILS
   // =====================
   const loadSession = async (sessionId) => {
     try {
@@ -81,8 +78,12 @@ export default function HistoryPage() {
   };
 
   // =====================
-  // UI
+  // 🔥 RESUME HANDLER (NEW)
   // =====================
+  const handleResume = (sessionId) => {
+    window.location.href = `/?sessionId=${sessionId}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
 
@@ -103,20 +104,33 @@ export default function HistoryPage() {
             sessions.map((s) => (
               <div
                 key={s.sessionId}
-                onClick={() => loadSession(s.sessionId)}
-                className="p-4 bg-white rounded-lg shadow cursor-pointer hover:bg-gray-50"
+                className="p-4 bg-white rounded-lg shadow"
               >
-                <h2 className="font-semibold text-lg">
-                  {s.problemQuery}
-                </h2>
+                {/* CLICK → VIEW DETAILS */}
+                <div
+                  onClick={() => loadSession(s.sessionId)}
+                  className="cursor-pointer hover:bg-gray-50"
+                >
+                  <h2 className="font-semibold text-lg">
+                    {s.problemQuery}
+                  </h2>
 
-                <p className="text-sm text-gray-500">
-                  Step: {s.state?.current_step_index}
-                </p>
+                  <p className="text-sm text-gray-500">
+                    Step: {s.state?.current_step_index}
+                  </p>
 
-                <p className="text-xs text-gray-400">
-                  {new Date(s.updatedAt).toLocaleString()}
-                </p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(s.updatedAt).toLocaleString()}
+                  </p>
+                </div>
+
+                {/* 🔥 RESUME BUTTON */}
+                <button
+                  onClick={() => handleResume(s.sessionId)}
+                  className="mt-3 bg-blue-600 text-white px-4 py-1 rounded"
+                >
+                  Resume Solving
+                </button>
               </div>
             ))
           )}
@@ -144,9 +158,13 @@ export default function HistoryPage() {
           </h2>
 
           <div className="space-y-3">
-            {history.map((h, i) => (
-              <HintAccordion key={i} hint={h} index={i} />
-            ))}
+            {history.length === 0 ? (
+              <p className="text-gray-500">No hints stored</p>
+            ) : (
+              history.map((h, i) => (
+                <HintAccordion key={i} hint={h} index={i} />
+              ))
+            )}
           </div>
         </div>
       )}

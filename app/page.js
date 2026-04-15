@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FlashCards from "@/components/FlashCards";
 
 const YouTubeIcon = () => (
@@ -69,8 +69,57 @@ export default function HomePage() {
   const [sessionId, setSessionId] = useState(null);
   const [isSolutionShown, setIsSolutionShown] = useState(false);
 
+  // =====================
+  // 🔥 RESUME SESSION (NEW)
+  // =====================
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get("sessionId");
+
+    if (sid) {
+      loadSession(sid);
+    }
+  }, []);
+
   // 🔥 TEMP USER (replace with auth later)
   const userId = "user_123";
+
+  // =====================
+  // 🔥 LOAD SESSION (NEW)
+  // =====================
+  const loadSession = async (sid) => {
+    try {
+      const res = await fetch(`/api/session/${sid}`);
+      const data = await res.json();
+
+      if (!data.success) return;
+
+      const session = data.data;
+      const history = data.history || [];
+
+      // restore session id
+      setSessionId(sid);
+
+      // restore problem
+      setProblemQuery(session.problemQuery);
+
+      // restore hints
+      setHintResponse(
+        history.map((h) => ({
+          id: Math.random(),
+          title: h.type,
+          content:
+            h.type === "SOLUTION" ? formatFullSolution(h.content) : h.content,
+        })),
+      );
+
+      // restore solution state
+      const hasSolution = history.some((h) => h.type === "SOLUTION");
+      setIsSolutionShown(hasSolution);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleGenerateHint = async (action) => {
     setIsLoading(true);
