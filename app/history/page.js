@@ -25,7 +25,7 @@ const HintAccordion = ({ hint, index }) => {
             title={hint.type}
             content={
               hint.type === "SOLUTION"
-                ? JSON.stringify(hint.content, null, 2)
+                ? formatHistorySolution(hint.content)
                 : hint.content
             }
           />
@@ -34,6 +34,44 @@ const HintAccordion = ({ hint, index }) => {
     </div>
   );
 };
+
+function formatHistorySolution(data) {
+  let text = "";
+
+  const solution = data.solution || {};
+
+  text += `📘 SOLUTION\n\n`;
+
+  text += `🧠 Approach:\n${solution.approach || ""}\n\n`;
+  text += `💡 Intuition:\n${solution.intuition || ""}\n\n`;
+  text += `💻 Code:\n${solution.code || ""}\n\n`;
+  text += `⏱ Time Complexity: ${solution.time_complexity || ""}\n`;
+  text += `📦 Space Complexity: ${solution.space_complexity || ""}\n\n`;
+
+  // =====================
+  // 🔥 REFLECTION
+  // =====================
+  if (data.reflection?.length) {
+    text += "\n🧠 Reflection:\n";
+
+    data.reflection.forEach((q, i) => {
+      text += `\n${i + 1}. ${q}`;
+    });
+  }
+
+  // =====================
+  // 🔥 ALTERNATIVES
+  // =====================
+  if (data.alternatives?.length) {
+    text += "\n\n🔀 Alternative Approaches:\n";
+
+    data.alternatives.forEach((a, i) => {
+      text += `\n${i + 1}. ${a.approach} → ${a.when_to_use}`;
+    });
+  }
+
+  return text;
+}
 
 export default function HistoryPage() {
   const [sessions, setSessions] = useState([]);
@@ -86,10 +124,7 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-
-      <h1 className="text-3xl font-bold text-center mb-6">
-        Session History
-      </h1>
+      <h1 className="text-3xl font-bold text-center mb-6">Session History</h1>
 
       {/* ===================== */}
       {/* SESSION LIST */}
@@ -102,18 +137,13 @@ export default function HistoryPage() {
             <p className="text-center">No sessions found</p>
           ) : (
             sessions.map((s) => (
-              <div
-                key={s.sessionId}
-                className="p-4 bg-white rounded-lg shadow"
-              >
+              <div key={s.sessionId} className="p-4 bg-white rounded-lg shadow">
                 {/* CLICK → VIEW DETAILS */}
                 <div
                   onClick={() => loadSession(s.sessionId)}
                   className="cursor-pointer hover:bg-gray-50"
                 >
-                  <h2 className="font-semibold text-lg">
-                    {s.problemQuery}
-                  </h2>
+                  <h2 className="font-semibold text-lg">{s.problemQuery}</h2>
 
                   <p className="text-sm text-gray-500">
                     Step: {s.state?.current_step_index}
@@ -142,7 +172,6 @@ export default function HistoryPage() {
       {/* ===================== */}
       {selectedSession && (
         <div className="max-w-3xl mx-auto">
-
           <button
             onClick={() => {
               setSelectedSession(null);

@@ -181,8 +181,41 @@ export default function HomePage() {
 
       // ✅ FULL SOLUTION
       if (response?.type === "FULL_SOLUTION") {
-        content = formatFullSolution(response.data);
+        let content = formatFullSolution(response.data);
+
+        // =====================
+        // 🔥 REFLECTION
+        // =====================
+        if (response.reflection?.length) {
+          content += "\n\n🧠 Reflection:\n";
+
+          response.reflection.forEach((q, i) => {
+            content += `\n${i + 1}. ${q}`;
+          });
+        }
+
+        // =====================
+        // 🔥 ALTERNATIVES
+        // =====================
+        if (response.alternatives?.length) {
+          content += "\n\n🔀 Alternative Approaches:\n";
+
+          response.alternatives.forEach((a, i) => {
+            content += `\n${i + 1}. ${a.approach} → ${a.when_to_use}`;
+          });
+        }
+
+        setHintResponse((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            title: "FULL SOLUTION",
+            content,
+          },
+        ]);
+
         setIsSolutionShown(true);
+        return;
       }
 
       // ✅ NORMAL HINT FLOW
